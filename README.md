@@ -61,8 +61,8 @@ $fRoleAssignments `
 $rgMapping = Import-Csv -Path "$($workingFolder)/rgMapping.csv" -Delimiter ","
 ```
 
-### [!NOTE]
-If you do not wish to map your Resource Groups between subscriptions, make sure the $rgMapping variable is set to $null.
-```powershell
-$rgMapping = $null
-```
+> [!NOTE]
+> If you do not wish to map your Resource Groups between subscriptions, make sure the $rgMapping variable is set to $null.
+> ```powershell
+> $rgMapping = $null
+> ```
