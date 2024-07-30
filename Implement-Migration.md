@@ -1,15 +1,17 @@
-# Azure RBAC Framework - Subscription to Subscription Migration
+# Azure RBAC Framework - Subscription to Subscription Migration Guide
 1. Establish Script Configuration
 2. Get Current Role Assignment Data
 3. Resource Group Mapping (Optional)
 4. Target Subscription Readiness
 5. Create New Role Assignment Map
 6. Implement RBAC Framework
+7. Backup Final Product
 
 ## Establish Script Configuration
 - Static Properties
 - Subscription Information
 - Subscription Common Names (Used In Group Names)
+- New Group Prefix
 
 ### Static Properties
 ```powershell
@@ -30,6 +32,11 @@ $customSubNames = @{
     $sourceSubId = "SourceSubCommonName"
     $targetSubId = "TargetSubCommonName"
 }
+```
+
+### New Group Name Prefix
+```powershell
+$customGroupPrefix = "AzUsers"
 ```
 
 ## Get Your Current Role Assignment Data
@@ -67,7 +74,7 @@ If you plan to change the resource group names, you need to create a mapping pro
 ### Create Mapping File
 
 ```powershell
-.\Create-RbacFrameworkRgMapping.ps1 -UseRoleAssignments `
+.\Create-RbacFrameworkRgMap.ps1 -UseRoleAssignments `
     -RoleAssignments $roleAssignments `
     -OutputFileName "$($workingPath)\rgMapping_$($timeStamp).csv"
 ```
@@ -81,7 +88,7 @@ If you plan to change the resource group names, you need to create a mapping pro
 ### Import Mapping File
 
 ```powershell
-$rgMapping = .\Import-RbacFrameworkRgMapping.ps1 -ResourceGroupMapFile "$($workingFolder)/rgMapping_$($timeStamp).csv"
+$rgMapping = .\Import-RbacFrameworkRgMap.ps1 -ResourceGroupMapFile "$($workingFolder)/rgMapping_$($timeStamp).csv"
 ```
 
 ### When Not Using a Mapping File
@@ -146,12 +153,14 @@ $resourceRoleDefinitionMapCustom = @{
 ## Create New Role Assignment Map
 
 ```powershell
-.\Create-RbacFrameworkRoleAssignmentMap.ps1 `
+$raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
     -RoleAssignments $roleAssignments `
     -TargetSubscriptionId $targetSubId `
     -ResourceGroupMap $rgMapping `
     -ResourceRoleDefinitionMap $resourceRoleDefinitionMapBuiltin `
-    -CustomResourceRoleDefinitionMap $resourceRoleDefinitionMapCustom
+    -CustomResourceRoleDefinitionMap $resourceRoleDefinitionMapCustom `
+    -SubscriptionNames $customSubNames `
+    -GroupPrefix $customGroupPrefix
 ```
 
 ## Implement RBAC Framework
@@ -159,23 +168,40 @@ $resourceRoleDefinitionMapCustom = @{
 - Add Azure Role Assignments
 - Update Entra ID Group Membership
 
-### Create Entra ID Groups Using Map File
+### Create Entra ID Groups Using Map
 
 ```powershell
-$rbacGroups = .\Build-RbacFrameworkGroups.ps1
-.\New-RbacFrameworkGroups.ps1 [-WhatIf]
+$groupsToCreate = $raMap `
+    | Select-Object -Property TargetGroupName, TargetGroupObjectId -Unique `
+    | Sort-Object TargetGroupName
+$createdGroups = .\New-RbacFrameworkGroups.ps1 -Groups $groupsToCreate [-WhatIf]
 ```
 
-### Add Azure Role Assignments Using Map File
+### Add Azure Role Assignments Using Map
 
 ```powershell
-$rbacAssignments = .\Build-RbacFrameworkAssignments.ps1
-.\New-RbacFrameworkAssignments.ps1 [-WhatIf]
+foreach ( $ra in $raMap ) {
+    $ra.TargetGroupObjectId = $createdGroups.ObjectId
+}
+$assignmentsToCreate = $raMap `
+    | Select-Object -Property TargetScope, TargetRoleDefinitionName, TargetGroupObjectId -Unique `
+    | Sort-Object
+$createdAssignments = .\New-RbacFrameworkAssignments.ps1 -Assignments $assignmentsToCreate [-WhatIf]
 ```
 
-### Update Entra ID Group Membership Using Map File
+### Update Entra ID Group Membership Using Map
 
 ```powershell
-$rbacGroupMembers = .\Build-RbacFrameworkGroupMembers.ps1
-.\New-RbacFrameworkGroupMembers.ps1 [-WhatIf]
+$membersToUpdate = $raMap `
+    | Select-Object -Property TargetGroupName, TargetGroupObjectId, ObjectId -Unique `
+    | Sort-Object
+$createdMembers = .\New-RbacFrameworkGroupMembers.ps1 -GroupMembers $membersToUpdate [-WhatIf]
+```
+
+# Backup Final Product
+```powershell
+$createdGroups | Export-Csv -Path "$($workingFolder)/createdGroups_$($timeStamp).csv" -Delimeter "," 
+$createdAssignments | Export-Csv -Path "$($workingFolder)/createdAssignments_$($timeStamp).csv" -Delimeter "," 
+$createdMembers | Export-Csv -Path "$($workingFolder)/createdMembers_$($timeStamp).csv" -Delimeter "," 
+$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter ","
 ```
