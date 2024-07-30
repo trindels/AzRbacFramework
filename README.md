@@ -1,68 +1,22 @@
-# AzRbacFramework
- 
-## Establish Source Subscription
+# Azure RBAC Framework
+Coming Soon: Introduction
 
-```powershell
-$subId = "00000000-0000-0000-0000-000000000000"
-$workingFolder = $ENV:TEMP
-$timeStamp = Get-Date -Format 'yyyyMMddhhmmss'
-```
+## Greenfield Implementation
+A Greenfield Implementation is used for new implementations of the Azure RBAC Framework.
+This greenfield guide includes adding new role assignments to existing subscriptions and resource groups.
 
-## Get Your Current Role Assignment Data
+[Click Here to go to Greenfield Implementation Guide](./Implement-Greenfield.md)
 
-### Using Live Data
-```powershell
-$roleAssignments = Get-AzRoleAssignment -Scope "/subscriptions/$($subId)"
-$roleAssignments | Export-Csv -Path "$($workingFolder)/roleAssignments_$($timeStamp).csv" -Delimeter "," -NoTypeInformation -NoClobber
-```
+## Brownfield Implementation (Conversion)
 
-### From File
-```powershell
-$roleAssignments = Import-Csv -Path "$($workingFolder)/roleAssignments.csv" -Delimeter ","
-```
+A Brownfield Implementation is used for converting existing user-based role assignments to
+this Azure RBAC Framework. This greenfield guide includes adding new role assignments to
+existing subscriptions and resource groups.
 
-## Filter Your Role Assignment Data
-To reduce the amount of data you are transforming, filter your role assignments to exclude management groups as well as Service Principals, Managed Identities, and orphaned role assignments.
+[Click Here to go to Brownfield Implementation Guide](./Implement-Brownfield.md)
 
-```powershell
-$fRoleAssignments = $roleAssignments `
-    | Where-Object { $_.Scope -like "/subscriptions/*" } `
-    | Where-Object { $_.ObjectType -eq "User" }
-```
+## Migration Implementation (Subscription To Subscription Migration)
+A Greenfield Implementation is used for new implementations of the Azure RBAC Framework.
+This greenfield guide includes adding new role assignments to existing subscriptions and resource groups.
 
-## Resource Group Mapping
-
-If you plan to change the resource group names, you need to create a mapping process.
-
-### Create Mapping File
-
-```powershell
-$fRoleAssignments `
-    | Select-Object `
-        @{Name="SourceSubscription";Expression={$_.Scope.Split("/")[2].ToLower()}}, `
-        @{Name="SourceResourceGroup";Expression={$_.Scope.Split("/")[4].ToLower()}}, `
-        @{Name="TargetSubscription";Expression=""}, `
-        @{Name="TargetResourceGroup";Expression=""} `
-        -Unique `
-    | Sort-Object SourceSubscription, SourceResourceGroup
-    | Export-Csv -Path "$($ENV:temp)\$($subId)_rgMapping_$($timeStamp).csv" -Delimiter "," -NoTypeInformation -NoClobber
-```
-
-### Update Mapping File
-
-1. Open your Resource Group Mapping File in favorite text editor (Notepad, Excel).
-2. Update the TargetSubscription column for each resource group with the Target Subscription Id
-3. Update the TargetResourceGroup column with the Target Resource Group Name
-4. Save your Resource Group Mapping file.
-
-### Import Mapping File
-
-```powershell
-$rgMapping = Import-Csv -Path "$($workingFolder)/rgMapping.csv" -Delimiter ","
-```
-
-> [!NOTE]
-> If you do not wish to map your Resource Groups between subscriptions, make sure the $rgMapping variable is set to $null.
-> ```powershell
-> $rgMapping = $null
-> ```
+[Click Here to go to Migration Implementation Guide](./Implement-Migration.md)
