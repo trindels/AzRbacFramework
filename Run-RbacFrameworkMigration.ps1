@@ -77,3 +77,44 @@ $missingRoles = .\Validate-RbacFrameworkRoleDefinitions.ps1 `
     -ResourceRoleDefinitionMap $resourceRoleDefinitionMapBuiltin `
     -CustomResourceRoleDefinitionMap $resourceRoleDefinitionMapCustom
 $missingRoles
+
+
+
+# Create New Role Assignment Map
+$raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
+    -RoleAssignments $roleAssignments `
+    -TargetSubscriptionId $targetSubId `
+    -ResourceGroupMap $rgMapping `
+    -ResourceRoleDefinitionMap $resourceRoleDefinitionMapBuiltin `
+    -CustomResourceRoleDefinitionMap $resourceRoleDefinitionMapCustom `
+    -SubscriptionNames $customSubNames `
+    -GroupPrefix $customGroupPrefix
+
+
+# Implement RBAC Framework
+## Create Entra ID Groups Using Map
+$groupsToCreate = $raMap `
+    | Select-Object -Property TargetGroupName, TargetGroupObjectId -Unique `
+    | Sort-Object TargetGroupName
+$createdGroups = .\New-RbacFrameworkGroups.ps1 -Groups $groupsToCreate [-WhatIf]
+
+## Add Azure Role Assignments Using Map
+foreach ( $ra in $raMap ) {
+    $ra.TargetGroupObjectId = $createdGroups.ObjectId
+}
+$assignmentsToCreate = $raMap `
+    | Select-Object -Property TargetScope, TargetRoleDefinitionName, TargetGroupObjectId -Unique `
+    | Sort-Object TargetScope, TargetRoleDefinitionName, TargetGroupObjectId
+$createdAssignments = .\New-RbacFrameworkAssignments.ps1 -Assignments $assignmentsToCreate [-WhatIf]
+
+## Update Entra ID Group Membership Using Map
+$membersToUpdate = $raMap `
+    | Select-Object -Property TargetGroupName, TargetGroupObjectId, ObjectId -Unique `
+    | Sort-Object TargetGroupName, TargetGroupObjectId, ObjectId
+$createdMembers = .\New-RbacFrameworkGroupMembers.ps1 -GroupMembers $membersToUpdate [-WhatIf]
+
+# Backup Role Assignment Map Final Product
+$createdGroups | Export-Csv -Path "$($workingFolder)/createdGroups_$($timeStamp).csv" -Delimeter "," 
+$createdAssignments | Export-Csv -Path "$($workingFolder)/createdAssignments_$($timeStamp).csv" -Delimeter "," 
+$createdMembers | Export-Csv -Path "$($workingFolder)/createdMembers_$($timeStamp).csv" -Delimeter "," 
+$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter ","

@@ -46,7 +46,7 @@ $customGroupPrefix = "AzUsers"
 ### Using Live Data
 ```powershell
 $roleAssignments = Get-AzRoleAssignment -Scope "/subscriptions/$($sourceSubId)"
-$roleAssignments | Export-Csv -Path "$($workingFolder)/roleAssignments_$($timeStamp).csv" -Delimeter "," -NoTypeInformation -NoClobber
+$roleAssignments | Export-Csv -Path "$($workingFolder)/roleAssignments_$($timeStamp).csv" -Delimiter "," -NoTypeInformation -NoClobber
 ```
 
 ### From File
@@ -162,8 +162,7 @@ $raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
 ```
 
 ## Implement RBAC Framework
-- Create Entra ID Groups
-- Add Azure Role Assignments
+- Create New Entra ID Group and New Azure Role Assignment
 - Update Entra ID Group Membership
 
 ### Create New Entra ID Group and New Azure Role Assignment
