@@ -13,13 +13,7 @@ Param(
     [hashtable]$ResourceRoleDefinitionMap,
 
     [Parameter(Mandatory=$True)]
-    [hashtable]$CustomResourceRoleDefinitionMap,
-
-    [Parameter(Mandatory=$False)]
-    [hashtable]$SubscriptionNames,
-
-    [Parameter(Mandatory=$False)]
-    [string]$GroupPrefix = $null
+    [hashtable]$CustomResourceRoleDefinitionMap
 )
 
 # Convert ResourceGroupMap to Hashtable
@@ -41,13 +35,6 @@ foreach ( $ra in $ras ) {
     
     # Get Target Information
     $tSub = $TargetSubscriptionId
-    if ( $tSub -in $SubscriptionNames.Keys ) {
-        $tSubName = $SubscriptionNames[$tSub]
-    } elseif ( 'default' -in $SubscriptionNames.Keys ) {
-        $tSubName = $SubscriptionNames['default']
-    } else {
-        $tSubName = $tSub
-    }   
     $tRg = $sRg.ToLower()
     if ( $tRg -in $rgMap.Keys ) { $tRg = $rgMap[$tRg] }
     $tRole = $sRole
@@ -61,13 +48,6 @@ foreach ( $ra in $ras ) {
     }
     $tScope = "/subscriptions/$($tSub)"
     if ( $tRg -ne "" ) { $tScope = "$($tScope)/resourceGroups/$($tRg)" }
-    $tGroupName = @(
-        $GroupPrefix
-        $tSubName
-        $tRg
-        $tRole -replace " ", ""
-    ) | Where-Object { $_ }
-    $tGroupName = $tGroupName -join "_"
 
     # Create Role Assignment Object
     $newRa = $ra
@@ -75,8 +55,6 @@ foreach ( $ra in $ras ) {
     $newRa | Add-Member -MemberType NoteProperty -Name TargetSubscriptionId -Value $tSub
     $newRa | Add-Member -MemberType NoteProperty -Name TargetResourceGroup -Value $tRg
     $newRa | Add-Member -MemberType NoteProperty -Name TargetRoleDefinitionName -Value $tRole
-    $newRa | Add-Member -MemberType NoteProperty -Name TargetGroupName -Value $tGroupName
-    $newRa | Add-Member -MemberType NoteProperty -Name TargetGroupObjectId -Value ""
     
     # Add Role Assignment to Map
     $raMap += $newRa

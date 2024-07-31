@@ -28,7 +28,10 @@ param(
     [string]$SubscriptionShortName = $null,
 
     [Parameter(Mandatory=$True, ParameterSetName="GroupAlreadyExists")]
-    [string]$ExistingGroup
+    [string]$ExistingGroup,
+
+    [Parameter(Mandatory=$False)]
+    [switch]$WhatIf
 )
 
 # Guid String
@@ -129,7 +132,15 @@ if ( $PsCmdlet.ParameterSetName -eq "GroupDoesNotExists" ) {
     $group = Get-MgGroup -Filter "displayName eq '$groupName'" -ErrorAction SilentlyContinue    
     if ( $null -eq $group ) {
         try {
-            $group = New-MgGroup -DisplayName $groupName -MailEnabled:$false -MailNickname $groupName -SecurityEnabled:$true -ErrorAction Stop
+            if ( $WhatIf.Exists ) {
+                $group = @{
+                    DisplayName = $groupName
+                    Id = "(whatif)$((New-Guid).Guid)"
+                }
+                Write-Host "[WhatIf] " -NoNewline
+            } else {
+                $group = New-MgGroup -DisplayName $groupName -MailEnabled:$false -MailNickname $groupName -SecurityEnabled:$true -ErrorAction Stop
+            }
             Write-Host "Group Created: $($group.DisplayName) (Id: $($group.Id))"
         } catch {
             Write-Error "Group Not Created: $groupName"
@@ -160,7 +171,17 @@ if ( $null -ne $assignment ) {
     Write-Host "Role Assignment Exists! (Id: $($assignment.RoleAssignmentId))"
 } else {
     try {
-        $assignment = New-AzRoleAssignment -ObjectId $group.Id -RoleDefinitionId $roleDef.Id -Scope $resId -ErrorAction Stop
+        if ( $WhatIf.Exists ) {
+            $assignment = @{
+                RoleAssignmentId = "(whatif)$((New-Guid).Guid)"
+                Scope = $resId
+                RoleDefinitionId = $roleDef.Id
+                ObjectId = $group.Id
+            }
+            Write-Host "[WhatIf] " -NoNewline
+        } else {
+            $assignment = New-AzRoleAssignment -ObjectId $group.Id -RoleDefinitionId $roleDef.Id -Scope $resId -ErrorAction Stop
+        }
         Write-Host "Role Assignment Created! (Id: $($assignment.RoleAssignmentId))"
     }
     catch {

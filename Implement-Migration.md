@@ -158,9 +158,7 @@ $raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
     -TargetSubscriptionId $targetSubId `
     -ResourceGroupMap $rgMapping `
     -ResourceRoleDefinitionMap $resourceRoleDefinitionMapBuiltin `
-    -CustomResourceRoleDefinitionMap $resourceRoleDefinitionMapCustom `
-    -SubscriptionNames $customSubNames `
-    -GroupPrefix $customGroupPrefix
+    -CustomResourceRoleDefinitionMap $resourceRoleDefinitionMapCustom
 ```
 
 ## Implement RBAC Framework
@@ -168,7 +166,26 @@ $raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
 - Add Azure Role Assignments
 - Update Entra ID Group Membership
 
-### Create Entra ID Groups Using Map
+### Create New Entra ID Group and New Azure Role Assignment
+```powershell
+$groupsAndRolesCreated = @()
+$rasToCreate = $raMap | Select-Object TargetSubscriptionId, TargetResourceGroupName, TargetRoleDefinitionName -Unique
+foreach ( $ra in $rasToCreate ) {
+    $newRbac = @{
+        SubscriptonId = $ra.TargetSubscriptionId
+        ReourceGroupName = $ra.TargetResourceGroupName
+        RoleDefinition = $ra.TargetRoleDefinitionName
+        GroupNamePrefix = $customGroupPrefix
+        SubscriptionShortName = $customSubNames[$ra.TargetSubscriptionId]
+    }
+    $groupsAndRolesCreated += .\NewRbacFrameworkGroupAndAssignment.ps1 @newRbac [-WhatIf]
+}
+```
+
+### Update Entra ID Group Members Using Map
+> ### Coming Soon!
+
+<!-- ### Create Entra ID Groups Using Map
 
 ```powershell
 $groupsToCreate = $raMap `
@@ -196,12 +213,10 @@ $membersToUpdate = $raMap `
     | Select-Object -Property TargetGroupName, TargetGroupObjectId, ObjectId -Unique `
     | Sort-Object
 $createdMembers = .\New-RbacFrameworkGroupMembers.ps1 -GroupMembers $membersToUpdate [-WhatIf]
-```
+``` -->
 
 # Backup Final Product
 ```powershell
-$createdGroups | Export-Csv -Path "$($workingFolder)/createdGroups_$($timeStamp).csv" -Delimeter "," 
-$createdAssignments | Export-Csv -Path "$($workingFolder)/createdAssignments_$($timeStamp).csv" -Delimeter "," 
-$createdMembers | Export-Csv -Path "$($workingFolder)/createdMembers_$($timeStamp).csv" -Delimeter "," 
+$groupsAndRolesCreated | Export-Csv -Path "$($workingFolder)/groupsAndRolesCreated_$($timeStamp).csv" -Delimeter "," 
 $raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter ","
 ```
