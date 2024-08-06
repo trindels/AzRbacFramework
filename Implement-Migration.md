@@ -177,45 +177,26 @@ foreach ( $ra in $rasToCreate ) {
         GroupNamePrefix = $customGroupPrefix
         SubscriptionShortName = $customSubNames[$ra.TargetSubscriptionId]
     }
-    $groupsAndRolesCreated += .\NewRbacFrameworkGroupAndAssignment.ps1 @newRbac [-WhatIf]
+    $groupsAndRolesCreated += .\New-RbacFrameworkGroupAndAssignment.ps1 @newRbac [-WhatIf]
 }
 ```
 
 ### Update Entra ID Group Members Using Map
-> ### Coming Soon!
-
-<!-- ### Create Entra ID Groups Using Map
-
 ```powershell
-$groupsToCreate = $raMap `
-    | Select-Object -Property TargetGroupName, TargetGroupObjectId -Unique `
-    | Sort-Object TargetGroupName
-$createdGroups = .\New-RbacFrameworkGroups.ps1 -Groups $groupsToCreate [-WhatIf]
-```
+foreach ( $grpRole in $groupsAndRolesCreated ) {
+    $users = $raMap | Where-Object { `
+        $_.TargetSubscriptionId -eq $grpRole.SubscriptionId -and `
+        $_.TargetResourceGroupName -eq $grpRole.ResourceGroupName -and `
+        $_.TargetRoleDefinitionName -eq $grpRole.RoleDefinition
+    } | Select-Object ObjectId -Unique
 
-### Add Azure Role Assignments Using Map
-
-```powershell
-foreach ( $ra in $raMap ) {
-    $ra.TargetGroupObjectId = $createdGroups.ObjectId
+    $membersCreated += .\New-RbacFrameworkGroupMembership.ps1 -Group $grpRole.GroupId -Members $users.ObjectId [-WhatIf]
 }
-$assignmentsToCreate = $raMap `
-    | Select-Object -Property TargetScope, TargetRoleDefinitionName, TargetGroupObjectId -Unique `
-    | Sort-Object
-$createdAssignments = .\New-RbacFrameworkAssignments.ps1 -Assignments $assignmentsToCreate [-WhatIf]
 ```
-
-### Update Entra ID Group Membership Using Map
-
-```powershell
-$membersToUpdate = $raMap `
-    | Select-Object -Property TargetGroupName, TargetGroupObjectId, ObjectId -Unique `
-    | Sort-Object
-$createdMembers = .\New-RbacFrameworkGroupMembers.ps1 -GroupMembers $membersToUpdate [-WhatIf]
-``` -->
 
 # Backup Final Product
 ```powershell
-$groupsAndRolesCreated | Export-Csv -Path "$($workingFolder)/groupsAndRolesCreated_$($timeStamp).csv" -Delimeter "," 
-$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter ","
+$groupsAndRolesCreated | Export-Csv -Path "$($workingFolder)/groupsAndRolesCreated_$($timeStamp).csv" -Delimeter "," -NoTypeInformation
+$membersCreated | Export-Csv -Path "$($workingFolder)/groupMembers_$($timeStamp).csv" -Delimeter "," -NoTypeInformation
+$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter "," -NoTypeInformation
 ```

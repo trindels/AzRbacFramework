@@ -71,7 +71,7 @@ if ( $mgCtx.Scopes -notcontains "User.Read.All" ) {
 
 # Check if Subscription Exists
 try {
-    $subscription = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction Stop
+    $subscription = Set-AzContext -SubscriptionId $SubscriptionId -ErrorAction Stop
 } catch {
     Write-Error "Subscription $SubscriptionId not found."
     exit
@@ -87,7 +87,7 @@ if ( $null -ne $ResourceGroupName -and $ResourceGroupName -ne "" ) {
         exit
     }
 } else {
-    $resId = "/subscriptions/$($subscription.Id)"
+    $resId = "/subscriptions/$($subscription.Subscription.Id)"
 }
 Write-Host "Resource Found: $resId"
 
@@ -191,9 +191,13 @@ if ( $null -ne $assignment ) {
     }
 }
 
+Set-AzContext $azCtx -ErrorAction SilentlyContinue
+
 # Get Entra ID Group Name based on parameters
 return [PSCustomObject]@{ 
     "RoleAssignmentId" = $assignment.RoleAssignmentId
+    "SubscriptionId" = $SubscriptionId
+    "ResourceGroupName" = $ResourceGroupName
     "Scope" = $resId
     "GroupName" = $group.DisplayName
     "GroupId" = $group.Id
