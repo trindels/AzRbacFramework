@@ -30,7 +30,7 @@ $NeededRoles = $RoleAssignments `
 $RoleDefinitions = Get-AzRoleDefinition -Scope "/subscriptions/$($SubscriptionId)"
 $MissingRoles = $NeededRoles | Where-Object { $_.RoleDefinitionName -notin $RoleDefinitions.Name }
 
-if ( $null -ne $MissiongRoles -and $MissingRoles.Count -gt 0 ) {
+if ( $null -ne $MissingRoles -and $MissingRoles.Count -gt 0 ) {
     Write-Host "Role Definitions Missing:" -ForegroundColor Yellow
     return $MissingRoles.RoleDefinitionName
 } else {
