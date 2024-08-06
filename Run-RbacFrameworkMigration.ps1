@@ -92,29 +92,35 @@ $raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
 
 
 # Implement RBAC Framework
-## Create Entra ID Groups Using Map
-$groupsToCreate = $raMap `
-    | Select-Object -Property TargetGroupName, TargetGroupObjectId -Unique `
-    | Sort-Object TargetGroupName
-$createdGroups = .\New-RbacFrameworkGroups.ps1 -Groups $groupsToCreate [-WhatIf]
-
-## Add Azure Role Assignments Using Map
-foreach ( $ra in $raMap ) {
-    $ra.TargetGroupObjectId = $createdGroups.ObjectId
+## Create New Entra ID Group and New Azure Role Assignment
+$groupsAndRolesCreated = @()
+$rasToCreate = $raMap | Select-Object TargetSubscriptionId, TargetResourceGroupName, TargetRoleDefinitionName -Unique | Sort-Object TargetSubscriptionId, TargetResourceGroupName, TargetRoleDefinitionName
+foreach ( $ra in $rasToCreate ) {
+    $newRbac = @{
+        SubscriptionId = $ra.TargetSubscriptionId
+        ResourceGroupName = $ra.TargetResourceGroupName
+        RoleDefinition = $ra.TargetRoleDefinitionName
+        GroupNamePrefix = $customGroupPrefix
+        SubscriptionShortName = $customSubNames[$ra.TargetSubscriptionId]
+    }
+    $groupsAndRolesCreated += .\New-RbacFrameworkGroupAndAssignment.ps1 @newRbac -WhatIf
 }
-$assignmentsToCreate = $raMap `
-    | Select-Object -Property TargetScope, TargetRoleDefinitionName, TargetGroupObjectId -Unique `
-    | Sort-Object TargetScope, TargetRoleDefinitionName, TargetGroupObjectId
-$createdAssignments = .\New-RbacFrameworkAssignments.ps1 -Assignments $assignmentsToCreate [-WhatIf]
 
-## Update Entra ID Group Membership Using Map
-$membersToUpdate = $raMap `
-    | Select-Object -Property TargetGroupName, TargetGroupObjectId, ObjectId -Unique `
-    | Sort-Object TargetGroupName, TargetGroupObjectId, ObjectId
-$createdMembers = .\New-RbacFrameworkGroupMembers.ps1 -GroupMembers $membersToUpdate [-WhatIf]
+## Update Entra ID Group Members Using Map
+$membersCreated = @()
+foreach ( $grpRole in $groupsAndRolesCreated ) {
+    $users = $raMap | Where-Object { `
+        $_.TargetSubscriptionId -eq $grpRole.SubscriptionId -and `
+        $_.TargetResourceGroupName -eq $grpRole.ResourceGroupName -and `
+        $_.TargetRoleDefinitionName -eq $grpRole.RoleDefinitionName `
+    } | Select-Object ObjectId -Unique
+
+    $membersCreated += .\New-RbacFrameworkGroupMembership.ps1 -Group $grpRole.GroupId -Members $users.ObjectId -WhatIf
+}
+
+
 
 # Backup Role Assignment Map Final Product
-$createdGroups | Export-Csv -Path "$($workingFolder)/createdGroups_$($timeStamp).csv" -Delimeter "," 
-$createdAssignments | Export-Csv -Path "$($workingFolder)/createdAssignments_$($timeStamp).csv" -Delimeter "," 
-$createdMembers | Export-Csv -Path "$($workingFolder)/createdMembers_$($timeStamp).csv" -Delimeter "," 
-$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter ","
+$groupsAndRolesCreated | Export-Csv -Path "$($workingFolder)/groupsAndRolesCreated_$($timeStamp).csv" -Delimiter "," -NoTypeInformation
+$membersCreated | Export-Csv -Path "$($workingFolder)/groupMembers_$($timeStamp).csv" -Delimiter "," -NoTypeInformation
+$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimiter "," -NoTypeInformation

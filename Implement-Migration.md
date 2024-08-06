@@ -168,11 +168,11 @@ $raMap = .\Create-RbacFrameworkRoleAssignmentMap.ps1 `
 ### Create New Entra ID Group and New Azure Role Assignment
 ```powershell
 $groupsAndRolesCreated = @()
-$rasToCreate = $raMap | Select-Object TargetSubscriptionId, TargetResourceGroupName, TargetRoleDefinitionName -Unique
+$rasToCreate = $raMap | Select-Object TargetSubscriptionId, TargetResourceGroupName, TargetRoleDefinitionName -Unique | Sort-Object TargetSubscriptionId, TargetResourceGroupName, TargetRoleDefinitionName
 foreach ( $ra in $rasToCreate ) {
     $newRbac = @{
-        SubscriptonId = $ra.TargetSubscriptionId
-        ReourceGroupName = $ra.TargetResourceGroupName
+        SubscriptionId = $ra.TargetSubscriptionId
+        ResourceGroupName = $ra.TargetResourceGroupName
         RoleDefinition = $ra.TargetRoleDefinitionName
         GroupNamePrefix = $customGroupPrefix
         SubscriptionShortName = $customSubNames[$ra.TargetSubscriptionId]
@@ -187,7 +187,7 @@ foreach ( $grpRole in $groupsAndRolesCreated ) {
     $users = $raMap | Where-Object { `
         $_.TargetSubscriptionId -eq $grpRole.SubscriptionId -and `
         $_.TargetResourceGroupName -eq $grpRole.ResourceGroupName -and `
-        $_.TargetRoleDefinitionName -eq $grpRole.RoleDefinition
+        $_.TargetRoleDefinitionName -eq $grpRole.RoleDefinitionName `
     } | Select-Object ObjectId -Unique
 
     $membersCreated += .\New-RbacFrameworkGroupMembership.ps1 -Group $grpRole.GroupId -Members $users.ObjectId [-WhatIf]
@@ -196,7 +196,7 @@ foreach ( $grpRole in $groupsAndRolesCreated ) {
 
 # Backup Final Product
 ```powershell
-$groupsAndRolesCreated | Export-Csv -Path "$($workingFolder)/groupsAndRolesCreated_$($timeStamp).csv" -Delimeter "," -NoTypeInformation
-$membersCreated | Export-Csv -Path "$($workingFolder)/groupMembers_$($timeStamp).csv" -Delimeter "," -NoTypeInformation
-$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimeter "," -NoTypeInformation
+$groupsAndRolesCreated | Export-Csv -Path "$($workingFolder)/groupsAndRolesCreated_$($timeStamp).csv" -Delimiter "," -NoTypeInformation
+$membersCreated | Export-Csv -Path "$($workingFolder)/groupMembers_$($timeStamp).csv" -Delimiter "," -NoTypeInformation
+$raMap | Export-Csv -Path "$($workingFolder)/raMap_$($timeStamp).csv" -Delimiter "," -NoTypeInformation
 ```

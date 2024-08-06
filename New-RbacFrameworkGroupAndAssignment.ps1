@@ -132,7 +132,7 @@ if ( $PsCmdlet.ParameterSetName -eq "GroupDoesNotExists" ) {
     $group = Get-MgGroup -Filter "displayName eq '$groupName'" -ErrorAction SilentlyContinue    
     if ( $null -eq $group ) {
         try {
-            if ( $WhatIf.Exists ) {
+            if ( $null -ne $WhatIf -and $WhatIf ) {
                 $group = @{
                     DisplayName = $groupName
                     Id = "(whatif)$((New-Guid).Guid)"
@@ -171,7 +171,7 @@ if ( $null -ne $assignment ) {
     Write-Host "Role Assignment Exists! (Id: $($assignment.RoleAssignmentId))"
 } else {
     try {
-        if ( $WhatIf.Exists ) {
+        if ( $null -ne $WhatIf -and $WhatIf ) {
             $assignment = @{
                 RoleAssignmentId = "(whatif)$((New-Guid).Guid)"
                 Scope = $resId
@@ -189,9 +189,10 @@ if ( $null -ne $assignment ) {
         Write-Host $_.Exception.Message
         exit
     }
+    Write-Host ""
 }
 
-Set-AzContext $azCtx -ErrorAction SilentlyContinue
+Set-AzContext $azCtx -ErrorAction SilentlyContinue | Out-Null
 
 # Get Entra ID Group Name based on parameters
 return [PSCustomObject]@{ 

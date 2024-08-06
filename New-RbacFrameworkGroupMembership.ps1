@@ -39,6 +39,7 @@ if ( $Group -match $guidFormat ) {
     $grp = Get-MgGroup -Filter "DisplayName eq '$($Group)'" -ErrorAction SilentlyContinue
 }
 if ( $null -eq $grp -or $grp.Count -eq 0) {
+    Write-Host " "
     if ( $null -ne $WhatIf -and $WhatIf ) {
         Write-Host "[WhatIf] [Warning]: Group Does Not Exist: $($Group)" -ForegroundColor Yellow
         $grp = @{

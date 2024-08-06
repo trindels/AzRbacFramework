@@ -14,13 +14,16 @@ $NeededRoles = $RoleAssignments `
     | Where-Object { $_.Scope -like "/subscriptions/*" } `
     | Select-Object @{Name="RoleDefinitionName";Expression={
         if ( $_.Scope.Split("/").Count -ge 9 -and $_.RoleDefinitionName -in @("Owner", "Contributor", "Reader") ) {
-            if ( "$($_.Scope.split("/")[6..7] -join "/") $($_.RoleDefinitionName)" -in $CustomResourceRoleDefinitionMap.Keys  ) {
-                $CustomResourceRoleDefinitionMap["$($_.Scope.split("/")[6..7] -join "/") $($_.RoleDefinitionName)"]
-            } elseif ( "$($_.Scope.split("/")[6..7] -join "/") $($_.RoleDefinitionName)" -in $ResourceRoleDefinitionMap.Keys ) {
-                $ResourceRoleDefinitionMap["$($_.Scope.split("/")[6..7] -join "/") $($_.RoleDefinitionName)"]
-            } else {
-                "$($_.Scope.split("/")[6..7] -join "/") $($_.RoleDefinitionName)"
-            }
+            "$($_.Scope.split("/")[6..7] -join "/") $($_.RoleDefinitionName)"
+        } else {
+            $_.RoleDefinitionName
+        }
+    }} -Unique `
+    | Select-Object @{Name="RoleDefinitionName";Expression={
+        if ( $_.RoleDefinitionName -in $CustomResourceRoleDefinitionMap.Keys  ) {
+            $CustomResourceRoleDefinitionMap[$_.RoleDefinitionName]
+        } elseif ( $_.RoleDefinitionName -in $ResourceRoleDefinitionMap.Keys ) {
+            $ResourceRoleDefinitionMap[$_.RoleDefinitionName]
         } else {
             $_.RoleDefinitionName
         }

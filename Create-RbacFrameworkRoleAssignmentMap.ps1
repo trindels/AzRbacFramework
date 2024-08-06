@@ -53,7 +53,7 @@ foreach ( $ra in $ras ) {
     $newRa = $ra
     $newRa | Add-Member -MemberType NoteProperty -Name TargetScope -Value $tScope
     $newRa | Add-Member -MemberType NoteProperty -Name TargetSubscriptionId -Value $tSub
-    $newRa | Add-Member -MemberType NoteProperty -Name TargetResourceGroup -Value $tRg
+    $newRa | Add-Member -MemberType NoteProperty -Name TargetResourceGroupName -Value $tRg
     $newRa | Add-Member -MemberType NoteProperty -Name TargetRoleDefinitionName -Value $tRole
     
     # Add Role Assignment to Map
