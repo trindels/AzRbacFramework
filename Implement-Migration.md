@@ -76,7 +76,7 @@ If you plan to change the resource group names, you need to create a mapping pro
 ```powershell
 .\Create-RbacFrameworkRgMap.ps1 -UseRoleAssignments `
     -RoleAssignments $roleAssignments `
-    -OutputFileName "$($workingPath)\rgMapping_$($timeStamp).csv"
+    -OutputFileName "$($workingFolder)\rgMapping_$($timeStamp).csv"
 ```
 
 ### Update Mapping File
@@ -183,6 +183,7 @@ foreach ( $ra in $rasToCreate ) {
 
 ### Update Entra ID Group Members Using Map
 ```powershell
+$membersCreated = @()
 foreach ( $grpRole in $groupsAndRolesCreated ) {
     $users = $raMap | Where-Object { `
         $_.TargetSubscriptionId -eq $grpRole.SubscriptionId -and `

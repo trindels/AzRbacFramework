@@ -21,13 +21,13 @@ if ( $null -eq $mgCtx ) {
 }
 
 # Is the Microsoft Graph "Group.ReadWrite.All" Scope available?
-if ( $mgCtx.Scopes -notcontains "Group.ReadWrite.All" ) {
+if ( $mgCtx.Scopes -notcontains "Group.ReadWrite.All" -and -not $WhatIf ) {
     Write-Error "Microsoft Graph Scope 'Group.ReadWrite.All' is not available."
     exit
 }
 
 # Is the Microsoft Graph "User.Read.All" Scope available?
-if ( $mgCtx.Scopes -notcontains "User.Read.All" ) {
+if ( $mgCtx.Scopes -notcontains "User.Read.All" -and -not $WhatIf ) {
     Write-Error "Microsoft Graph Scope 'User.Read.All' is not available."
     exit
 }
