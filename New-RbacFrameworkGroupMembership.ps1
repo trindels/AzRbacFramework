@@ -3,11 +3,13 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$Group,
 
-    [Parameter(Mandatory=$True)]
+    [Parameter(Mandatory=$True, ParameterSetName="Members")]
+    [Parameter(Mandatory=$True, ParameterSetName="Both")]
     [ValidateNotNullOrEmpty()]
     [string[]]$Members,
 
-    [Parameter(Mandatory=$True)]
+    [Parameter(Mandatory=$True, ParameterSetName="Owners")]
+    [Parameter(Mandatory=$True, ParameterSetName="Both")]
     [ValidateNotNullOrEmpty()]
     [string[]]$Owners,
 
