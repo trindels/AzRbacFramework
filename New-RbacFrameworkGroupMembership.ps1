@@ -7,6 +7,10 @@ param(
     [ValidateNotNullOrEmpty()]
     [string[]]$Members,
 
+    [Parameter(Mandatory=$True)]
+    [ValidateNotNullOrEmpty()]
+    [string[]]$Owners,
+
     [Parameter(Mandatory=$False)]
     [switch]$WhatIf
 )
@@ -62,7 +66,7 @@ foreach ( $mbr in $Members ) {
     } else {
         $usr = Get-MgUser -Filter "UserPrincipalName eq '$($mbr)'" -ErrorAction SilentlyContinue
     }
-    $usr = Get-MgUser -UserId $mbr -ErrorAction SilentlyContinue
+
     if ( $null -eq $usr -or $usr.Count -eq 0 ) {
         Write-Host "[Warning]: Member ObjectID Does Not Exist: $($mbr)" -ForegroundColor Yellow
         continue
@@ -88,6 +92,44 @@ foreach ( $mbr in $Members ) {
             Write-Host "Member Already Exists: $($usr.DisplayName) in Group: $($grp.DisplayName)" -ForegroundColor Yellow
         } else {
             Write-Error "Member Not Added: $($usr.DisplayName) to Group: $($grp.DisplayName)"
+            Write-Host $_.Exception.Message
+        }
+    }
+}
+
+# Loop through each owner and add to the group
+foreach ( $mbr in $Owners ) {
+    if ( $mbr -match $guidFormat ) {
+        $usr = Get-MgUser -UserId $mbr -ErrorAction SilentlyContinue
+    } else {
+        $usr = Get-MgUser -Filter "UserPrincipalName eq '$($mbr)'" -ErrorAction SilentlyContinue
+    }
+
+    if ( $null -eq $usr -or $usr.Count -eq 0 ) {
+        Write-Host "[Warning]: Owner ObjectID Does Not Exist: $($mbr)" -ForegroundColor Yellow
+        continue
+    } 
+
+    try {
+        if ( $null -ne $WhatIf -and $WhatIf ) {
+            Write-Host "[WhatIf] " -NoNewline
+        } else {
+            $grpMbr = New-MgGroupOwner -GroupId $grp.Id -DirectoryObjectId $usr.Id -ErrorAction Stop
+        }
+        Write-Host "Owner Added: $($usr.DisplayName) to Group: $($grp.DisplayName)" -ForegroundColor Green
+        $grpOwner = [PSCustomObject]@{
+            GroupObjectId = $grp.Id
+            GroupDisplayName = $grp.DisplayName
+            OwnerObjectId = $usr.Id
+            OwnerDisplayName = $usr.DisplayName
+        }
+        $grpMbrs += $grpOwner
+
+    } catch {
+        if ( $_.Exception.Message -match "already exist" ) {
+            Write-Host "Owner Already Exists: $($usr.DisplayName) in Group: $($grp.DisplayName)" -ForegroundColor Yellow
+        } else {
+            Write-Error "Owner Not Added: $($usr.DisplayName) to Group: $($grp.DisplayName)"
             Write-Host $_.Exception.Message
         }
     }
